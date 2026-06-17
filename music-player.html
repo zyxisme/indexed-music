@@ -1737,6 +1737,147 @@
             const secs = Math.floor(seconds % 60);
             return mins + ':' + (secs < 10 ? '0' : '') + secs;
         }
+
+        // ===== Music Management Functions (Task 7) =====
+
+        // Refresh music list UI
+        async function refreshMusicList() {
+            musicList = await getAllMusic();
+            musicList.sort((a, b) => b.addedAt - a.addedAt);
+
+            const listContainer = document.getElementById('musicList');
+            const musicCount = document.getElementById('musicCount');
+
+            if (musicCount) {
+                musicCount.textContent = `(${musicList.length})`;
+            }
+
+            if (!listContainer) return;
+
+            if (musicList.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="empty-state" id="emptyState">
+                        <div class="empty-icon">♪</div>
+                        <div class="empty-text">还没有音乐，快去添加吧！</div>
+                    </div>
+                `;
+                return;
+            }
+
+            listContainer.innerHTML = musicList.map((music, index) => `
+                <div class="list-item ${currentMusicId === music.id ? 'active' : ''}"
+                     onclick="playMusic(${music.id}, ${index})">
+                    <div class="item-icon">♪</div>
+                    <div class="item-info">
+                        <div class="item-name">${escapeHtml(music.name)}</div>
+                        <div class="item-size">${formatSize(music.size)}</div>
+                    </div>
+                    <div class="item-actions">
+                        <button class="btn-small delete" onclick="event.stopPropagation(); removeMusic(${music.id})">删除</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Remove music by ID
+        async function removeMusic(id) {
+            if (!confirm('确定要删除这首音乐吗？')) {
+                return;
+            }
+
+            try {
+                await deleteMusic(id);
+
+                if (currentMusicId === id) {
+                    audioPlayer.pause();
+                    audioPlayer.src = '';
+                    currentMusicId = null;
+                    currentIndex = -1;
+
+                    const nowPlayingTitle = document.getElementById('nowPlayingTitle');
+                    const nowPlayingArtist = document.getElementById('nowPlayingArtist');
+                    const playBtn = document.getElementById('playBtn');
+
+                    if (nowPlayingTitle) nowPlayingTitle.textContent = '未选择音乐';
+                    if (nowPlayingArtist) nowPlayingArtist.textContent = '从列表中选择一首音乐开始播放';
+                    if (playBtn) playBtn.innerHTML = '<span class="icon-play">▶</span>';
+                }
+
+                showNotification('音乐已删除', 'success');
+                await refreshMusicList();
+            } catch (error) {
+                console.error('删除错误:', error);
+                showNotification('删除失败: ' + error.message, 'error');
+            }
+        }
+
+        // Handle file upload
+        async function handleFileUpload(files) {
+            showLoading(true);
+
+            try {
+                for (const file of files) {
+                    const arrayBuffer = await file.arrayBuffer();
+                    await saveMusic(file.name, arrayBuffer, file.type);
+                }
+
+                showNotification(`成功添加 ${files.length} 首音乐！`, 'success');
+                await refreshMusicList();
+            } catch (error) {
+                console.error('上传错误:', error);
+                showNotification('上传失败: ' + error.message, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Download music from URL
+        async function downloadFromUrl() {
+            const urlInput = document.getElementById('musicUrl');
+            if (!urlInput) return;
+            const url = urlInput.value.trim();
+
+            if (!url) {
+                showNotification('请输入音乐URL', 'error');
+                return;
+            }
+
+            showLoading(true);
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error('下载失败');
+                }
+
+                const blob = await response.blob();
+                const fileName = getFileNameFromUrl(url) || 'unknown.mp3';
+                const arrayBuffer = await blob.arrayBuffer();
+
+                await saveMusic(fileName, arrayBuffer, blob.type);
+                urlInput.value = '';
+
+                showNotification('音乐下载成功！', 'success');
+                await refreshMusicList();
+            } catch (error) {
+                console.error('下载错误:', error);
+                showNotification('下载失败: ' + error.message, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Get filename from URL
+        function getFileNameFromUrl(url) {
+            try {
+                const urlObj = new URL(url);
+                const path = urlObj.pathname;
+                const fileName = path.split('/').pop();
+                return fileName || null;
+            } catch {
+                return null;
+            }
+        }
     </script>
 </body>
 </html>
