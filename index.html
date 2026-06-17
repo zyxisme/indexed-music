@@ -1732,7 +1732,7 @@
             });
         }
 
-        // Get single music with audio data (reassembled from chunks)
+        // Get single music with audio data (chunk-efficient: Blob avoids manual reassembly)
         async function getMusic(id) {
             return new Promise((resolve, reject) => {
                 const transaction = db.transaction([STORE_NAME], 'readonly');
@@ -1756,18 +1756,17 @@
                     chunksRequest.onsuccess = () => {
                         const chunks = chunksRequest.result.sort((a, b) => a.index - b.index);
 
-                        // Reassemble chunks into single ArrayBuffer
-                        const totalSize = chunks.reduce((sum, c) => sum + c.data.byteLength, 0);
-                        const result = new Uint8Array(totalSize);
-                        let offset = 0;
-                        for (const chunk of chunks) {
-                            result.set(new Uint8Array(chunk.data), offset);
-                            offset += chunk.data.byteLength;
-                        }
+                        // Create Blob directly from chunk ArrayBuffers —
+                        // browser handles concatenation internally, avoiding
+                        // a full in-memory Uint8Array copy that blocks the main thread.
+                        const blob = new Blob(
+                            chunks.map(c => c.data),
+                            { type: metadata.type }
+                        );
 
                         resolve({
                             ...metadata,
-                            data: result.buffer
+                            blob: blob
                         });
                     };
 
@@ -1824,8 +1823,8 @@
                     URL.revokeObjectURL(audioPlayer.src);
                 }
 
-                const blob = new Blob([music.data], { type: music.type });
-                const url = URL.createObjectURL(blob);
+                // Use blob directly from getMusic() — no extra copy needed
+                const url = URL.createObjectURL(music.blob);
 
                 audioPlayer.src = url;
                 audioPlayer.play().catch(err => {
