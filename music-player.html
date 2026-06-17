@@ -1878,6 +1878,207 @@
                 return null;
             }
         }
+
+        // ===== Utility Functions (Task 8) =====
+
+        // Format file size
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Show/hide loading state
+        function showLoading(show) {
+            const loadingEl = document.getElementById('loading');
+            if (loadingEl) {
+                loadingEl.classList.toggle('show', show);
+            }
+        }
+
+        // Show notification
+        function showNotification(message, type = '') {
+            const notification = document.getElementById('notification');
+            if (!notification) return;
+
+            notification.textContent = message;
+            notification.className = 'notification ' + type;
+
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 10);
+
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // ===== Dialog Control Functions (Task 8) =====
+
+        // Open add music modal
+        function openModal() {
+            const modal = document.getElementById('addMusicModal');
+            if (modal) {
+                modal.classList.add('show');
+            }
+        }
+
+        // Close add music modal
+        function closeModal() {
+            const modal = document.getElementById('addMusicModal');
+            if (modal) {
+                modal.classList.remove('show');
+            }
+        }
+
+        // Paste from clipboard
+        async function pasteFromClipboard() {
+            try {
+                const text = await navigator.clipboard.readText();
+                const urlInput = document.getElementById('musicUrl');
+                if (urlInput) {
+                    urlInput.value = text;
+                }
+            } catch (error) {
+                console.error('粘贴失败:', error);
+                showNotification('无法访问剪贴板', 'error');
+            }
+        }
+
+        // ===== Event Listeners Initialization (Task 8) =====
+
+        // Initialize event listeners
+        function initEventListeners() {
+            // Add music button
+            const addMusicBtn = document.getElementById('addMusicBtn');
+            if (addMusicBtn) {
+                addMusicBtn.addEventListener('click', openModal);
+            }
+
+            // Modal overlay click to close
+            const modalOverlay = document.getElementById('addMusicModal');
+            if (modalOverlay) {
+                modalOverlay.addEventListener('click', (e) => {
+                    if (e.target === modalOverlay) {
+                        closeModal();
+                    }
+                });
+            }
+
+            // File upload
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+
+            if (uploadArea && fileInput) {
+                uploadArea.addEventListener('click', () => {
+                    fileInput.click();
+                });
+
+                fileInput.addEventListener('change', (e) => {
+                    if (e.target.files.length > 0) {
+                        handleFileUpload(e.target.files);
+                    }
+                });
+
+                // Drag and drop
+                uploadArea.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    uploadArea.classList.add('dragover');
+                });
+
+                uploadArea.addEventListener('dragleave', () => {
+                    uploadArea.classList.remove('dragover');
+                });
+
+                uploadArea.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    uploadArea.classList.remove('dragover');
+
+                    if (e.dataTransfer.files.length > 0) {
+                        handleFileUpload(e.dataTransfer.files);
+                    }
+                });
+            }
+
+            // Audio player events
+            audioPlayer.addEventListener('timeupdate', () => {
+                const progressFill = document.getElementById('progressFill');
+                const currentTimeEl = document.getElementById('currentTime');
+                if (progressFill && audioPlayer.duration) {
+                    const percent = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+                    progressFill.style.width = percent + '%';
+                }
+                if (currentTimeEl) {
+                    currentTimeEl.textContent = formatTime(audioPlayer.currentTime);
+                }
+            });
+
+            audioPlayer.addEventListener('loadedmetadata', () => {
+                const durationEl = document.getElementById('duration');
+                if (durationEl) {
+                    durationEl.textContent = formatTime(audioPlayer.duration);
+                }
+            });
+
+            audioPlayer.addEventListener('ended', () => {
+                playNext();
+            });
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'INPUT') return;
+
+                switch(e.code) {
+                    case 'Space':
+                        e.preventDefault();
+                        togglePlay();
+                        break;
+                    case 'ArrowLeft':
+                        audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - 5);
+                        break;
+                    case 'ArrowRight':
+                        if (audioPlayer.duration && !isNaN(audioPlayer.duration)) {
+                            audioPlayer.currentTime = Math.min(audioPlayer.duration, audioPlayer.currentTime + 5);
+                        }
+                        break;
+                }
+            });
+
+            // URL input Enter key
+            const musicUrlInput = document.getElementById('musicUrl');
+            if (musicUrlInput) {
+                musicUrlInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        downloadFromUrl();
+                    }
+                });
+            }
+        }
+
+        // ===== Application Initialization (Task 8) =====
+
+        // Initialize application
+        async function init() {
+            try {
+                await initDB();
+                initEventListeners();
+                await refreshMusicList();
+                console.log('音乐播放器初始化完成');
+            } catch (error) {
+                console.error('初始化错误:', error);
+                showNotification('初始化失败: ' + error.message, 'error');
+            }
+        }
+
+        // Start application
+        init();
     </script>
 </body>
 </html>
