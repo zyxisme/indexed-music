@@ -1946,14 +1946,14 @@
 
             listContainer.innerHTML = musicList.map((music, index) => `
                 <div class="list-item ${currentMusicId === music.id ? 'active' : ''}"
-                     onclick="playMusic(${music.id}, ${index})">
+                     onclick="playMusic('${music.id}', ${index})">
                     <div class="item-icon">♪</div>
                     <div class="item-info">
                         <div class="item-name">${escapeHtml(music.name)}</div>
                         <div class="item-size">${formatSize(music.size)}</div>
                     </div>
                     <div class="item-actions">
-                        <button class="btn-small delete" onclick="event.stopPropagation(); removeMusic(${music.id})">删除</button>
+                        <button class="btn-small delete" onclick="event.stopPropagation(); removeMusic('${music.id}')">删除</button>
                     </div>
                 </div>
             `).join('');
