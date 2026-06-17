@@ -21,3 +21,10 @@ build/
 # Temporary
 *.tmp
 *.temp
+
+# Project files (not for public repo)
+CLAUDE.md
+DESIGN.md
+docs/
+music-player-chunks/
+*.backup
