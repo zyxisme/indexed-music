@@ -686,29 +686,6 @@
             color: var(--text-primary);
         }
 
-        .navbar-links {
-            display: flex;
-            gap: var(--spacing-lg);
-        }
-
-        .nav-link {
-            color: var(--text-secondary);
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 700;
-            padding: var(--spacing-sm) var(--spacing-md);
-            border-radius: var(--radius-pill);
-            transition: color 0.2s;
-        }
-
-        .nav-link:hover {
-            color: var(--text-primary);
-        }
-
-        .nav-link.active {
-            color: var(--text-primary);
-        }
-
         /* ===== Spotify Layout: Main Content ===== */
 
         .main-content {
@@ -998,24 +975,6 @@
             font-weight: 700;
         }
 
-        .navbar-links {
-            display: flex;
-            gap: var(--spacing-lg);
-        }
-
-        .nav-link {
-            color: var(--text-secondary);
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 700;
-            transition: color 0.2s;
-        }
-
-        .nav-link:hover,
-        .nav-link.active {
-            color: var(--text-primary);
-        }
-
         /* Main Content Area */
         .main-content {
             margin-top: 64px;
@@ -1070,7 +1029,6 @@
         .player-bar {
             display: flex;
             align-items: center;
-            justify-content: space-between;
             padding: 0 var(--spacing-lg);
             height: 90px;
             background-color: var(--bg-surface);
@@ -1085,6 +1043,7 @@
         .player-info {
             flex: 1;
             min-width: 0;
+            z-index: 1;
         }
 
         .player-info-title {
@@ -1101,11 +1060,15 @@
         }
 
         .player-controls {
-            flex: 2;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: var(--spacing-sm);
+            max-width: 600px;
+            width: 100%;
         }
 
         .controls-buttons {
@@ -1170,6 +1133,7 @@
             align-items: center;
             justify-content: flex-end;
             gap: var(--spacing-sm);
+            z-index: 1;
         }
 
         .volume-icon {
@@ -1415,10 +1379,6 @@
                 padding: 0 var(--spacing-md);
             }
 
-            .navbar-links {
-                display: none;
-            }
-
             .main-content {
                 padding: var(--spacing-md);
             }
@@ -1429,6 +1389,10 @@
 
             .player-volume {
                 display: none;
+            }
+
+            .player-controls {
+                max-width: calc(100% - 200px);
             }
 
             .progress-container {
@@ -1444,6 +1408,10 @@
         @media (min-width: 577px) and (max-width: 1024px) {
             .player-volume {
                 flex: 0.5;
+            }
+
+            .player-controls {
+                max-width: 400px;
             }
 
             .progress-container {
@@ -1526,10 +1494,6 @@
             <span class="logo-icon">♪</span>
             <span class="logo-text">Indexed Music</span>
         </div>
-        <div class="navbar-links">
-            <a href="#" class="nav-link active">首页</a>
-            <a href="#" class="nav-link">音乐库</a>
-        </div>
         <button class="btn-pill" id="addMusicBtn">添加音乐</button>
     </nav>
 
@@ -1558,13 +1522,13 @@
         <div class="player-controls">
             <div class="controls-buttons">
                 <button class="btn-control" onclick="playPrevious()" title="上一首">
-                    <span class="icon-prev">⏮</span>
+                    <span class="icon-prev"></span>
                 </button>
                 <button class="btn-play" id="playBtn" onclick="togglePlay()" title="播放/暂停">
-                    <span class="icon-play">▶</span>
+                    <span class="icon-play"></span>
                 </button>
                 <button class="btn-control" onclick="playNext()" title="下一首">
-                    <span class="icon-next">⏭</span>
+                    <span class="icon-next"></span>
                 </button>
             </div>
 
@@ -1578,7 +1542,7 @@
         </div>
 
         <div class="player-volume">
-            <span class="volume-icon">🔊</span>
+            <span class="volume-icon"></span>
             <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="80" oninput="changeVolume(this.value)">
         </div>
     </footer>
@@ -1636,6 +1600,25 @@
         let currentMusicId = null;
         let musicList = [];
         let currentIndex = -1;
+
+        // SVG Icon definitions
+        const ICONS = {
+            prev: `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
+            </svg>`,
+            play: `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M8 5v14l11-7z"/>
+            </svg>`,
+            pause: `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+            </svg>`,
+            next: `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
+            </svg>`,
+            volume: `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+            </svg>`
+        };
 
         // Initialize IndexedDB
         function initDB() {
@@ -1773,7 +1756,7 @@
 
                 if (nowPlayingTitle) nowPlayingTitle.textContent = music.name;
                 if (nowPlayingArtist) nowPlayingArtist.textContent = '正在播放';
-                if (playBtn) playBtn.innerHTML = '<span class="icon-pause">⏸</span>';
+                if (playBtn) playBtn.innerHTML = `<span class="icon-pause">${ICONS.pause}</span>`;
 
                 await refreshMusicList();
             } catch (error) {
@@ -1794,10 +1777,10 @@
             const playBtn = document.getElementById('playBtn');
             if (audioPlayer.paused) {
                 audioPlayer.play();
-                if (playBtn) playBtn.innerHTML = '<span class="icon-pause">⏸</span>';
+                if (playBtn) playBtn.innerHTML = `<span class="icon-pause">${ICONS.pause}</span>`;
             } else {
                 audioPlayer.pause();
-                if (playBtn) playBtn.innerHTML = '<span class="icon-play">▶</span>';
+                if (playBtn) playBtn.innerHTML = `<span class="icon-play">${ICONS.play}</span>`;
             }
         }
 
@@ -1911,7 +1894,7 @@
 
                     if (nowPlayingTitle) nowPlayingTitle.textContent = '未选择音乐';
                     if (nowPlayingArtist) nowPlayingArtist.textContent = '从列表中选择一首音乐开始播放';
-                    if (playBtn) playBtn.innerHTML = '<span class="icon-play">▶</span>';
+                    if (playBtn) playBtn.innerHTML = `<span class="icon-play">${ICONS.play}</span>`;
                 }
 
                 showNotification('音乐已删除', 'success');
@@ -2063,6 +2046,21 @@
             }
         }
 
+        // ===== Icon Initialization =====
+
+        // Initialize SVG icons in the DOM
+        function initIcons() {
+            const iconPrev = document.querySelector('.icon-prev');
+            const iconPlay = document.querySelector('.icon-play');
+            const iconNext = document.querySelector('.icon-next');
+            const iconVolume = document.querySelector('.volume-icon');
+
+            if (iconPrev) iconPrev.innerHTML = ICONS.prev;
+            if (iconPlay) iconPlay.innerHTML = ICONS.play;
+            if (iconNext) iconNext.innerHTML = ICONS.next;
+            if (iconVolume) iconVolume.innerHTML = ICONS.volume;
+        }
+
         // ===== Event Listeners Initialization (Task 8) =====
 
         // Initialize event listeners
@@ -2180,6 +2178,7 @@
             try {
                 await initDB();
                 initEventListeners();
+                initIcons();
                 await refreshMusicList();
                 console.log('音乐播放器初始化完成');
             } catch (error) {
